@@ -468,13 +468,26 @@ function analyzeCommunicationDeterministically(question = '', text = '') {
   const repeatedPhrase = /(\b\w+\b(?:\s+\b\w+\b){1,4})[,.!?\s]+\1/i.test(answer);
   const grammarPenalty = (/(\balot\b|should of|could of|would of)/i.test(answer) ? 15 : 0) + fillerCount * 3;
 
-  const relevance = shortYesNo ? 5 : clampScore((matchedExpectations / Math.max(1, expectations.length)) * 75 + (hasPersonalContribution ? 15 : 0) + (hasResult ? 10 : 0));
-  const content = shortYesNo ? 5 : clampScore(Math.min(100, words.length / 45 * 65 + matchedExpectations / Math.max(1, expectations.length) * 35));
-  const clarity = shortYesNo ? 15 : clampScore(45 + Math.min(35, sentences.length * 8) + (uniqueRatio >= 0.55 ? 15 : 0) - grammarPenalty - (sentences.length === 1 && words.length > 35 ? 10 : 0));
-  const specificity = shortYesNo ? 5 : clampScore((hasSpecificEvidence ? 45 : 10) + (hasPersonalContribution ? 30 : 0) + (hasResult ? 25 : 0));
-  const structure = shortYesNo ? 10 : clampScore((sentences.length >= 2 ? 35 : 10) + (matchedExpectations >= 2 ? 20 : 5) + (hasPersonalContribution ? 25 : 0) + (hasResult ? 20 : 0));
-  const professionalism = clampScore(78 - grammarPenalty - (shortYesNo ? 25 : 0) + (hasPersonalContribution ? 12 : 0));
-  const conciseness = clampScore(words.length === 0 ? 0 : 75 - (words.length > 120 ? 20 : 0) - (repeatedPhrase ? 25 : 0) - fillerCount * 5);
+  // A "weak" answer is one that doesn't substantively engage with the
+  // question at all (a blank/near-blank answer, "I don't know", or any
+  // short answer that matches none of the question's expected themes and
+  // shows no personal contribution, evidence, or result). Every sub-score
+  // must drop together for these — not just relevance/content — otherwise
+  // a non-answer like "I don't know why you should hire me" still scores
+  // 68/78/75 on clarity/professionalism/conciseness just for being
+  // grammatically well-formed.
+  const isWeakAnswer = shortYesNo
+    || words.length < 6
+    || /\b(don'?t know|do\s+not\s+know|no\s+idea|not\s+sure)\b/i.test(answer)
+    || (words.length <= 20 && matchedExpectations === 0 && !hasPersonalContribution && !hasSpecificEvidence && !hasResult);
+
+  const relevance = isWeakAnswer ? 5 : clampScore((matchedExpectations / Math.max(1, expectations.length)) * 75 + (hasPersonalContribution ? 15 : 0) + (hasResult ? 10 : 0));
+  const content = isWeakAnswer ? 5 : clampScore(Math.min(100, words.length / 45 * 65 + matchedExpectations / Math.max(1, expectations.length) * 35));
+  const clarity = isWeakAnswer ? 15 : clampScore(45 + Math.min(35, sentences.length * 8) + (uniqueRatio >= 0.55 ? 15 : 0) - grammarPenalty - (sentences.length === 1 && words.length > 35 ? 10 : 0));
+  const specificity = isWeakAnswer ? 5 : clampScore((hasSpecificEvidence ? 45 : 10) + (hasPersonalContribution ? 30 : 0) + (hasResult ? 25 : 0));
+  const structure = isWeakAnswer ? 10 : clampScore((sentences.length >= 2 ? 35 : 10) + (matchedExpectations >= 2 ? 20 : 5) + (hasPersonalContribution ? 25 : 0) + (hasResult ? 20 : 0));
+  const professionalism = isWeakAnswer ? clampScore(20 - grammarPenalty) : clampScore(78 - grammarPenalty + (hasPersonalContribution ? 12 : 0));
+  const conciseness = isWeakAnswer ? (words.length === 0 ? 0 : 20) : clampScore(75 - (words.length > 120 ? 20 : 0) - (repeatedPhrase ? 25 : 0) - fillerCount * 5);
   const evaluation = {
     relevance: { score: relevance, reason: relevance >= 70 ? 'The answer addresses the selected question directly.' : 'The answer does not cover enough of what the selected question asks.' },
     content: { score: content, reason: content >= 70 ? 'The answer provides sufficient supporting information.' : 'The answer needs more useful details to be complete.' },

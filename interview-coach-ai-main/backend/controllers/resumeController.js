@@ -26,7 +26,15 @@ export const analyzeResumeDoc = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'No readable text provided for analysis.', errorCode: 'EMPTY_TEXT' });
     }
     // For text-only analysis, run the engine without file upload
-    const { fullResumeAnalysis } = await import('../services/atsAnalyzerEngine.js');
+    const { fullResumeAnalysis, isLikelyResume } = await import('../services/atsAnalyzerEngine.js');
+    const resumeCheck = isLikelyResume(text);
+    if (!resumeCheck.isResume) {
+      return res.status(400).json({
+        success: false,
+        message: "This doesn't look like a resume. Please provide text with sections like Experience, Education, Skills, or Projects.",
+        errorCode: 'NOT_A_RESUME',
+      });
+    }
     const analysis = fullResumeAnalysis(text, role, jd);
     res.json({ success: true, ...analysis });
   } catch (err) {

@@ -1786,7 +1786,7 @@ export function analyzeResumeText(
     structureScore +
     terminologyScore +
     contactScore;
-  const atsScore = Math.min(98, Math.max(30, rawTotal));
+  const atsScore = Math.min(98, Math.max(0, rawTotal));
   const statusLabel = getAtsStatusLabel(atsScore);
 
   // ── Role-Specific Improvements (Accurate & Contextual) ──────────────────────
@@ -2031,6 +2031,83 @@ export function analyzeResumeText(
 }
 
 /**
+ * Does this document contain short, resume-style section headers
+ * (Experience, Education, Skills, Projects, ...)? Headers are matched as
+ * standalone short lines, the same way the section extractors above detect
+ * them — a random sentence that merely contains the word "experience"
+ * does not count.
+ */
+function countResumeSectionHeaders(rawText) {
+  const headerPatterns = [
+    /^(work\s+)?experience$/i,
+    /^employment(\s+history)?$/i,
+    /^education$/i,
+    /^(technical\s+)?skills?$/i,
+    /^projects?$/i,
+    /^(career\s+)?objective$/i,
+    /^(professional\s+)?summary$/i,
+    /^profile$/i,
+    /^certifications?$/i,
+    /^achievements?$/i,
+    /^internships?$/i,
+  ];
+  const lines = rawText
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0 && l.length <= 35);
+
+  let count = 0;
+  for (const line of lines) {
+    if (headerPatterns.some((p) => p.test(line))) count++;
+  }
+  return count;
+}
+
+/**
+ * Heuristic resume detector. Runs BEFORE scoring so a non-resume document
+ * (an assignment, a report, random text, ...) is rejected instead of being
+ * given a plausible-looking score. Scores a handful of resume signals and
+ * requires a minimum combined total — no single signal is enough on its
+ * own, since e.g. a doc can mention a tech term without being a resume.
+ */
+export function isLikelyResume(rawText = "") {
+  const text = rawText || "";
+  if (text.trim().length < 50) {
+    return {
+      isResume: false,
+      confidence: 0,
+      reason: "Document is too short to be a resume.",
+    };
+  }
+
+  const headerCount = countResumeSectionHeaders(text);
+  const hasEmail = !!extractEmail(text);
+  const hasPhone = !!extractPhone(text);
+  const hasEducation = !!extractEducation(text);
+  const hasExperienceOrProjects =
+    !!extractExperience(text) || !!extractProjects(text);
+
+  let signals = 0;
+  if (headerCount >= 2) signals += 2;
+  else if (headerCount === 1) signals += 1;
+  if (hasEmail || hasPhone) signals += 1;
+  if (hasEducation) signals += 1;
+  if (hasExperienceOrProjects) signals += 1;
+
+  const isResume = signals >= 3;
+  const confidence = Math.min(100, signals * 20);
+
+  return {
+    isResume,
+    confidence,
+    reason: isResume
+      ? null
+      : "This document doesn't look like a resume — it's missing clear sections like Experience, Education, Skills, or Projects, and/or contact details.",
+    signals: { headerCount, hasEmail, hasPhone, hasEducation, hasExperienceOrProjects },
+  };
+}
+
+/**
  * Full resume analysis: ATS + keywords + extracted info + improvement suggestions
  */
 export function fullResumeAnalysis(
@@ -2074,12 +2151,12 @@ export function fullResumeAnalysis(
 
   const sectionBreakdown = {
     atsCompatibility: base.ats.score,
-    skills: Math.min(100, extractedInfo.skills?.length * 5 || 50),
+    skills: extractedInfo.skills?.length ? Math.min(100, extractedInfo.skills.length * 5) : 0,
     keywords: kwScore,
-    education: extractedInfo.education ? 85 : 40,
-    experience: extractedInfo.experience ? 80 : 45,
-    projects: extractedInfo.projects ? 80 : 45,
-    certifications: extractedInfo.certifications ? 85 : 40,
+    education: extractedInfo.education ? 85 : 5,
+    experience: extractedInfo.experience ? 80 : 5,
+    projects: extractedInfo.projects ? 80 : 5,
+    certifications: extractedInfo.certifications ? 85 : 5,
     formatting: base.scoringBreakdown.structureScore * (100 / 15),
     contentQuality: base.scoringBreakdown.terminologyScore * 10,
     jobRelevance: base.ats.score,
@@ -2101,7 +2178,7 @@ export function fullResumeAnalysis(
 
   return {
     ...base,
-    overallScore: Math.min(98, Math.max(35, overallScore)),
+    overallScore: Math.min(98, Math.max(0, overallScore)),
     sectionBreakdown,
     extractedInfo,
     keywordAnalysis,
@@ -2121,4 +2198,5 @@ export default {
   ROLE_SKILL_DEFINITIONS,
   ROLE_KEYWORD_CATEGORIES,
   getAtsStatusLabel,
+  isLikelyResume,
 };

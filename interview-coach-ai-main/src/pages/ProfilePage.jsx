@@ -76,10 +76,8 @@ export default function ProfilePage() {
       updateUser(updatedUserPayload);
       toast.success('🎉 Profile changes saved successfully!');
     } catch (err) {
-      console.warn('API error, saving locally:', err);
-      const updatedUserPayload = { ...user, ...profile };
-      updateUser(updatedUserPayload);
-      toast.success('Profile changes saved!');
+      console.warn('Profile save failed:', err);
+      toast.error(err?.response?.data?.message || 'Could not save profile changes. Please try again.');
     } finally {
       setSavingProfile(false);
     }

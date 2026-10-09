@@ -114,13 +114,15 @@ export default function AptitudePage() {
 
       if (res.data) {
         setResults(res.data);
+        setSubmitted(true);
+        toast.success('Test evaluated successfully!');
+      } else {
+        toast.error('Could not evaluate test. Please try again.');
       }
-    } catch {
-      toast.error('Network error during submission. Test scored locally.');
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Could not submit test. Please try again.');
     } finally {
-      setSubmitted(true);
       setLoading(false);
-      toast.success('Test evaluated successfully!');
     }
   }, [answers, category, timeLeft, totalTime]);
 

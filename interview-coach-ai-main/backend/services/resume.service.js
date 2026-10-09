@@ -3,6 +3,7 @@ import { userRepository } from "../repositories/user.repository.js";
 import {
   fullResumeAnalysis,
   matchResumeToJobDescription,
+  isLikelyResume,
 } from "./atsAnalyzerEngine.js";
 import { extractTextFromFile } from "./textExtractionService.js";
 import { recordActivity } from "./activity.service.js";
@@ -41,12 +42,27 @@ export async function uploadAndAnalyze(userId, file, options = {}) {
     );
   }
 
+  // 1.5 Reject documents that don't actually look like a resume (wrong
+  // file uploaded, assignment/report, etc.) before scoring them.
+  const resumeCheck = isLikelyResume(extractedText);
+  if (!resumeCheck.isResume) {
+    throw Object.assign(
+      new Error(
+        "This doesn't look like a resume. Please upload a resume with sections like Experience, Education, Skills, or Projects.",
+      ),
+      { statusCode: 400, errorCode: "NOT_A_RESUME" },
+    );
+  }
+
   // 2. Run analysis engine
   const analysis = fullResumeAnalysis(
     extractedText,
     targetRole,
     jobDescription,
   );
+  console.log("[DEBUG] file:", file.originalname, "| extractedText length:", extractedText.length);
+  console.log("[DEBUG] extractedText preview:", JSON.stringify(extractedText.slice(0, 300)));
+  console.log("[DEBUG] ats.score:", analysis.ats?.score, "| overallScore:", analysis.overallScore);
 
   // 3. Determine version
   const existingCount = await resumeRepository.countByUser(userId);

@@ -1,6 +1,7 @@
 import * as resumeService from '../services/resume.service.js';
 import { resumeRepository } from '../repositories/resume.repository.js';
 import { calculateATS     } from '../services/aiService.js';
+import { isLikelyResume   } from '../services/atsAnalyzerEngine.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ATS Controller — HTTP only.
@@ -30,6 +31,15 @@ export const analyzeATS = async (req, res, next) => {
 
     if (!text) {
       return res.status(400).json({ success: false, message: 'No resume text available. Please upload a resume first.', errorCode: 'NO_RESUME_TEXT' });
+    }
+
+    const resumeCheck = isLikelyResume(text);
+    if (!resumeCheck.isResume) {
+      return res.status(400).json({
+        success: false,
+        message: "This doesn't look like a resume. Please upload a resume with sections like Experience, Education, Skills, or Projects.",
+        errorCode: 'NOT_A_RESUME',
+      });
     }
 
     const atsResult = await calculateATS(text, jobRole);

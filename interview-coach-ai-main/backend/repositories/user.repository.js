@@ -119,12 +119,19 @@ export const userRepository = {
     const sb = getSupabase();
     await sb.from('user_skills').delete().eq('user_id', userId);
     if (!skills || skills.length === 0) return [];
-    const rows = skills.map(s => ({
-      user_id:    userId,
-      skill_name: s.name,
-      level:      s.level || 0,
-      category:   s.category || 'General',
-    }));
+    // Skills can arrive as plain strings (["Java","Python"]) or as
+    // objects ({name, level, category}) -- normalize both, and drop
+    // any blank/empty entries so we never insert a null skill_name.
+    const rows = skills
+      .map(s => (typeof s === 'string' ? { name: s } : (s || {})))
+      .filter(s => s.name && String(s.name).trim().length > 0)
+      .map(s => ({
+        user_id:    userId,
+        skill_name: String(s.name).trim(),
+        level:      s.level || 0,
+        category:   s.category || 'General',
+      }));
+    if (rows.length === 0) return [];
     const { data, error } = await sb.from('user_skills').insert(rows).select();
     if (error) throw error;
     return data;
