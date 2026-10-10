@@ -4,12 +4,14 @@ import { BrowserRouter } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
+import { AdminAuthProvider } from './context/AdminAuthContext.jsx'
 import './index.css'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>
+      <AdminAuthProvider>
         <App />
         <Toaster
           position="top-right"
@@ -26,6 +28,7 @@ createRoot(document.getElementById('root')).render(
             error: { iconTheme: { primary: '#ef4444', secondary: '#1a1a40' } },
           }}
         />
+      </AdminAuthProvider>
       </AuthProvider>
     </BrowserRouter>
   </StrictMode>,

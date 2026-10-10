@@ -1,5 +1,6 @@
-import { Menu, Bell, Search } from 'lucide-react';
+import { Menu, Search } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import NotificationBell from './NotificationBell';
 
 export default function Navbar({ onMenuClick }) {
   const { user } = useAuth();
@@ -33,10 +34,7 @@ export default function Navbar({ onMenuClick }) {
       {/* right */}
       <div className="flex items-center gap-3">
         {/* notifications */}
-        <button className="relative p-2 rounded-xl hover:bg-white/5 transition cursor-pointer" aria-label="Notifications">
-          <Bell className="w-5 h-5 text-slate-400" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-purple-500" />
-        </button>
+        <NotificationBell />
 
         {/* avatar */}
         <div className="flex items-center gap-3 pl-3 border-l border-[#2a2a5a]">

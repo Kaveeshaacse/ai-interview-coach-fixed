@@ -106,6 +106,12 @@ export default function LoginPage() {
               Sign up
             </Link>
           </p>
+
+          <p className="text-center text-xs text-slate-500 mt-3">
+            <Link to="/staff-login" className="hover:text-slate-300 underline">
+              Staff / Admin Portal
+            </Link>
+          </p>
         </div>
       </div>
     </div>

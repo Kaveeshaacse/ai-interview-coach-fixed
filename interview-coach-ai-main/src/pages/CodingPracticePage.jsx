@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { codingAPI } from '../services/api';
 import {
   Code2, Play, Send, Search, CheckCircle2, XCircle,
@@ -21,6 +22,7 @@ const diffColors = {
 const languages = ['Java', 'Python', 'JavaScript', 'C++'];
 
 export default function CodingPracticePage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [problems, setProblems] = useState([]);
   const [search, setSearch] = useState('');
   const [diffFilter, setDiffFilter] = useState('All');
@@ -56,6 +58,20 @@ export default function CodingPracticePage() {
   useEffect(() => {
     fetchProblems();
   }, []);
+
+  // Deep-link support: a student notification for a new coding question links
+  // here as /coding?problemId=<id> so clicking it opens that exact problem
+  // instead of just the catalog.
+  useEffect(() => {
+    const wantedId = searchParams.get('problemId');
+    if (!wantedId || !problems.length) return;
+    const header = problems.find((p) => String(p.id) === String(wantedId));
+    if (header) handleSelectProblem(header);
+    const next = new URLSearchParams(searchParams);
+    next.delete('problemId');
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [problems]);
 
   const filtered = problems.filter((p) => {
     const matchSearch = p.title.toLowerCase().includes(search.toLowerCase()) || p.category.toLowerCase().includes(search.toLowerCase());
@@ -213,8 +229,14 @@ export default function CodingPracticePage() {
   };
 
   const solvedCount = Object.keys(solvedMap).length;
+  // Counts are derived from the actual fetched problem list (built-in + any
+  // active admin-added questions), not hardcoded, so they stay correct as
+  // staff add more questions from the admin panel.
+  const easyCount = problems.filter((p) => p.difficulty === 'Easy').length;
+  const mediumCount = problems.filter((p) => p.difficulty === 'Medium').length;
+  const totalCount = problems.length;
 
-  if (loading && !selectedProblem) return <LoadingSpinner text="Loading 10 Coding Test Questions..." />;
+  if (loading && !selectedProblem) return <LoadingSpinner text="Loading Coding Test Questions..." />;
 
   // ─────────────────────────────────────────────────────────────────────────────
   // VIEW 1: PROBLEM CATALOG (10 QUESTIONS: 5 EASY, 5 MEDIUM)
@@ -224,12 +246,12 @@ export default function CodingPracticePage() {
       <div className="space-y-6 animate-fade-in">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-white">Coding Practice Test (10 Questions)</h1>
-            <p className="text-slate-400 mt-1">Solve 5 Easy and 5 Medium problems tested against hidden test suites</p>
+            <h1 className="text-2xl lg:text-3xl font-bold text-white">Coding Practice Test ({totalCount} Questions)</h1>
+            <p className="text-slate-400 mt-1">Solve {easyCount} Easy and {mediumCount} Medium problems tested against hidden test suites</p>
           </div>
           <div className="flex items-center gap-3">
             <span className="px-3 py-1.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-semibold">
-              Solved: {solvedCount} / 10
+              Solved: {solvedCount} / {totalCount}
             </span>
           </div>
         </div>
@@ -259,7 +281,7 @@ export default function CodingPracticePage() {
                       : 'bg-[#1a1a3e] border-[#2a2a5a] text-slate-400 hover:border-purple-500/50'
                   }`}
                 >
-                  {d} {d === 'Easy' ? '(5)' : d === 'Medium' ? '(5)' : '(10)'}
+                  {d} ({d === 'Easy' ? easyCount : d === 'Medium' ? mediumCount : totalCount})
                 </button>
               ))}
             </div>

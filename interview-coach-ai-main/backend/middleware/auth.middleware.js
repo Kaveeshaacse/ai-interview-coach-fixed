@@ -64,6 +64,13 @@ export async function protect(req, res, next) {
         errorCode: 'USER_NOT_FOUND',
       });
     }
+    if (user.is_active === false) {
+      return res.status(403).json({
+        success:   false,
+        message:   'This account has been deactivated. Contact your administrator.',
+        errorCode: 'ACCOUNT_DEACTIVATED',
+      });
+    }
     req.user = user;
     return next();
   } catch (err) {

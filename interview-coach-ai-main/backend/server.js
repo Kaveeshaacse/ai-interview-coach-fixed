@@ -29,6 +29,9 @@ import skillRoutes        from './routes/skillRoutes.js';
 import dashboardRoutes    from './routes/dashboardRoutes.js';
 import performanceRoutes  from './routes/performanceRoutes.js';
 import learningPathRoutes from './routes/learningPathRoutes.js';
+import studentNotificationsRoutes from './routes/studentNotificationsRoutes.js';
+import adminAuthRoutes    from './routes/adminAuthRoutes.js';
+import adminRoutes        from './routes/adminRoutes.js';
 
 // ── Middleware ────────────────────────────────────────────────────────────────
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
@@ -99,6 +102,9 @@ app.use('/api/recommendations', skillRoutes);   // alias kept for frontend compa
 app.use('/api/dashboard',     dashboardRoutes);
 app.use('/api/performance',   performanceRoutes);
 app.use('/api/learning-paths', learningPathRoutes);
+app.use('/api/notifications', studentNotificationsRoutes);
+app.use('/api/admin-auth',     adminAuthRoutes);
+app.use('/api/admin',          adminRoutes);
 
 // ── Error handling ────────────────────────────────────────────────────────────
 app.use(notFound);

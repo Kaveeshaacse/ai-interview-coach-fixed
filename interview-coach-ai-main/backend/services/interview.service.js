@@ -1,8 +1,9 @@
 import { interviewRepository } from '../repositories/interview.repository.js';
 import { generateInterviewQuestions, evaluateInterviewAnswer,
          generateTechnicalQuestions, evaluateTechnicalAnswer } from './aiService.js';
-import { getBehaviouralQuestions, BEHAVIOURAL_TOPICS } from '../utils/behaviouralQuestions.js';
-import { getTechnicalQuestionsByRole, getSkillsForRole, ALL_TECHNICAL_ROLES } from '../utils/roleSkillsMap.js';
+import { BEHAVIOURAL_TOPICS } from '../utils/behaviouralQuestions.js';
+import { getSkillsForRole, ALL_TECHNICAL_ROLES } from '../utils/roleSkillsMap.js';
+import { getMergedBehaviouralQuestions, getMergedTechnicalQuestions } from './questionBankBridge.service.js';
 import { recordActivity } from './activity.service.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -21,8 +22,8 @@ export async function startMockInterview(userId, {
     ? behaviouralTopic
     : 'General Behavioural';
 
-  // Get topic-specific behavioural questions
-  const questions = getBehaviouralQuestions(topic, difficulty, count);
+  // Get topic-specific behavioural questions (built-in bank + any active admin-added ones)
+  const questions = await getMergedBehaviouralQuestions(topic, difficulty, count);
 
   if (!questions || questions.length === 0) {
     throw Object.assign(
@@ -185,8 +186,8 @@ export async function startTechnicalInterview(userId, {
   // Validate role
   const validRole = ALL_TECHNICAL_ROLES.includes(role) ? role : 'Software Engineer';
 
-  // Get role-specific technical questions (NO technology selection needed)
-  let questions = getTechnicalQuestionsByRole(validRole, difficulty, count);
+  // Get role-specific technical questions (built-in bank + any active admin-added ones)
+  let questions = await getMergedTechnicalQuestions(validRole, difficulty, count);
 
   // Fallback: use AI if question bank is empty for this role/difficulty
   if (!questions || questions.length === 0) {

@@ -1,6 +1,6 @@
 import { aptitudeRepository } from '../repositories/aptitude.repository.js';
 import { recordActivity      } from '../services/activity.service.js';
-import { getQuestionsByCategory } from '../utils/aptitudeQuestions.js';
+import { getMergedAptitudeQuestions } from '../services/questionBankBridge.service.js';
 
 export const getAptitudeCategories = async (req, res) => {
   res.json({
@@ -17,7 +17,7 @@ export const getAptitudeCategories = async (req, res) => {
 export const startAptitudeTest = async (req, res, next) => {
   try {
     const category = (req.body?.category || req.query?.category || 'quantitative').toLowerCase();
-    const questions = getQuestionsByCategory(category);
+    const questions = await getMergedAptitudeQuestions(category);
 
     // Strip answers before sending to client
     const sanitized = questions.map(q => ({
@@ -63,7 +63,7 @@ export const submitAptitudeTest = async (req, res, next) => {
       });
     }
 
-    const questions = getQuestionsByCategory(category);
+    const questions = await getMergedAptitudeQuestions(category);
     let correct = 0, wrong = 0, unanswered = 0;
     const categoryStats = {};
     const detailedReview = [];

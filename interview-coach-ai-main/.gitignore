@@ -28,6 +28,10 @@ backend/uploads/*
 backend/temp/
 temp/
 
+# Stray nested duplicate clone left over from an earlier deploy script —
+# not part of the actual project, must never be committed.
+INTERVIEW-COACH-FINAL/
+
 # Editor & OS files
 .vscode/*
 !.vscode/extensions.json

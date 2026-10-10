@@ -1,12 +1,12 @@
 import { codingRepository } from '../repositories/coding.repository.js';
-import { codingProblems, getProblemById } from '../utils/codingProblems.js';
+import { getMergedCodingProblems, getMergedCodingProblemById } from '../services/questionBankBridge.service.js';
 import { executeCode } from '../services/codeExecutionEngine.js';
 import { recordActivity } from '../services/activity.service.js';
 
 export const getCodingProblems = async (req, res, next) => {
   try {
     const { category, difficulty, search } = req.query;
-    let filtered = [...codingProblems];
+    let filtered = await getMergedCodingProblems();
     if (category   && category   !== 'All') filtered = filtered.filter(p => p.category.toLowerCase().includes(category.toLowerCase()));
     if (difficulty && difficulty !== 'All') filtered = filtered.filter(p => p.difficulty.toLowerCase() === difficulty.toLowerCase());
     if (search) {
@@ -34,7 +34,7 @@ export const getCodingProblems = async (req, res, next) => {
 
 export const getCodingProblemById = async (req, res, next) => {
   try {
-    const problem = getProblemById(req.params.id);
+    const problem = await getMergedCodingProblemById(req.params.id);
     if (!problem) return res.status(404).json({ success: false, message: 'Problem not found', errorCode: 'PROBLEM_NOT_FOUND' });
     res.json({ success: true, problem: { id: problem.id, title: problem.title, difficulty: problem.difficulty, category: problem.category, acceptance: problem.acceptance, description: problem.description, inputFormat: problem.inputFormat, outputFormat: problem.outputFormat, examples: problem.examples, visibleTestCases: problem.visibleTestCases } });
   } catch (err) {
@@ -45,7 +45,7 @@ export const getCodingProblemById = async (req, res, next) => {
 export const runCode = async (req, res, next) => {
   try {
     const { problemId, language = 'Java', code = '' } = req.body;
-    const problem = getProblemById(problemId) || codingProblems[0];
+    const problem = (await getMergedCodingProblemById(problemId)) || (await getMergedCodingProblems())[0];
     if (!code.trim()) return res.status(400).json({ success: false, message: 'Please write code before running', errorCode: 'EMPTY_CODE' });
 
     const result = await executeCode(code, language, problem.visibleTestCases);
@@ -58,7 +58,7 @@ export const runCode = async (req, res, next) => {
 export const submitCode = async (req, res, next) => {
   try {
     const { problemId, language = 'Java', code = '' } = req.body;
-    const problem = getProblemById(problemId) || codingProblems[0];
+    const problem = (await getMergedCodingProblemById(problemId)) || (await getMergedCodingProblems())[0];
     if (!code.trim()) return res.status(400).json({ success: false, message: 'Please write code before submitting', errorCode: 'EMPTY_CODE' });
 
     const allCases = [...problem.visibleTestCases, ...problem.hiddenTestCases];

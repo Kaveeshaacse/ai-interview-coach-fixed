@@ -158,4 +158,11 @@ export const learningPathsAPI = {
     API.put(`/learning-paths/topics/${topicId}/progress`, { completed, pathId }),
 };
 
+// ── Notifications ─────────────────────────────────────────────────────────
+export const notificationsAPI = {
+  list: () => API.get('/notifications'),
+  markRead: (id) => API.put(`/notifications/${id}/read`),
+  markAllRead: () => API.put('/notifications/read-all'),
+};
+
 export default API;

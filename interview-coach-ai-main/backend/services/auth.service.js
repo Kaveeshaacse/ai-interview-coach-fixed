@@ -69,6 +69,11 @@ export async function loginUser({ email, password }) {
     throw Object.assign(new Error('Invalid email or password'), { statusCode: 401 });
   }
 
+  // 1b. Blocked by admin — deactivated accounts can't log in
+  if (user.is_active === false) {
+    throw Object.assign(new Error('This account has been deactivated. Contact your administrator.'), { statusCode: 403 });
+  }
+
   // 2. Verify password — ALWAYS, no bypasses
   const isMatch = await bcrypt.compare(password, user.password_hash);
   if (!isMatch) {

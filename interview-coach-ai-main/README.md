@@ -34,8 +34,8 @@ This is an AI-powered placement preparation platform covering:
 | HTTP Client | Axios | 1.x |
 | Backend Runtime | Node.js (ESM) | 18+ |
 | Backend Framework | Express | 4.x |
-| Database | MongoDB | 6+ |
-| ODM | Mongoose | 8.x |
+| Database | Supabase (PostgreSQL) | — |
+| DB Client | @supabase/supabase-js | 2.x |
 | Authentication | JWT + bcryptjs | — |
 | File Upload | Multer | 1.x |
 | PDF Parsing | pdf-parse | 1.x |
@@ -87,7 +87,9 @@ interviewcoach/
 
 ---
 
-## Database Schema (MongoDB)
+## Database Schema (historical — original MongoDB design)
+
+> **Note:** This project was later migrated from MongoDB to Supabase (PostgreSQL) — see `backend/push-schema-pg.mjs` for the live schema and `backend/database/` for the actual table definitions. The field-level descriptions below are kept for design-history reference and no longer reflect the live database structure.
 
 ### Users
 Fields: name, email (indexed, unique), password (hashed), college, degree, branch, graduationYear, phone, location, bio, linkedIn, github, portfolio, resumeUrl, jobPreference, skills[], currentSkills[{name, level, category}], totalSessions, lastLoginAt, averageScores{resume, ats, interview, communication, coding, aptitude, overall}, weeklyProgress[]
@@ -156,13 +158,13 @@ Fields: userId, currentSkills[], skillGaps[], recommendations[], scoreSnapshot{a
 
 ### Prerequisites
 - Node.js 18+
-- MongoDB (local installation or MongoDB Atlas free tier)
+- A free [Supabase](https://supabase.com) project — this app uses Supabase (PostgreSQL), not MongoDB
 
 ### Step 1: Install Dependencies
 
 ```bash
 # Root (frontend)
-cd interviewcoach
+cd interview-coach-ai-main
 npm install
 
 # Backend
@@ -172,12 +174,13 @@ npm install
 
 ### Step 2: Configure Environment
 
-**Backend** — `backend/.env` is already created with defaults:
+**Backend** — copy `backend/.env.example` to `backend/.env` and fill in your own Supabase project's values:
 ```env
 PORT=5000
 NODE_ENV=development
-MONGODB_URI=mongodb://localhost:27017/interview_coach
-JWT_SECRET=supersecret_jwt_key_interview_coach_2026_change_this_in_production
+SUPABASE_URL=https://your-project-id.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-secret-key-here
+JWT_SECRET=replace_with_strong_random_secret_min_32_chars
 JWT_EXPIRE=7d
 USE_MOCK_AI=true
 AI_API_KEY=
@@ -185,18 +188,27 @@ AI_API_URL=https://api.openai.com/v1/chat/completions
 AI_MODEL=gpt-4o-mini
 CLIENT_URL=http://localhost:5173
 ```
+Find `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` under **Supabase Dashboard → Project Settings → API**.
 
-**Frontend** — `.env` is already created:
+**Frontend** — copy `.env.example` to `.env` (the default already works for local development):
 ```env
 VITE_API_BASE_URL=http://localhost:5000/api
 ```
 
-### Step 3: Start MongoDB
-```bash
-# Local MongoDB
-mongod
+### Step 3: Set Up the Database
 
-# Or use MongoDB Atlas — update MONGODB_URI in backend/.env
+With `DATABASE_URL` set to your Supabase connection string (**Project Settings → Database → Connection string → URI**), run each of these once, in order, from `backend/`:
+
+```bash
+DATABASE_URL="postgresql://postgres:<password>@<host>:5432/postgres" node push-schema-pg.mjs
+DATABASE_URL="postgresql://postgres:<password>@<host>:5432/postgres" node add-student-notifications.mjs
+DATABASE_URL="postgresql://postgres:<password>@<host>:5432/postgres" node add-notification-link-column.mjs
+```
+
+Then, with your `backend/.env` already filled in, create a staff/admin login and seed the built-in question bank:
+```bash
+node create-admin.mjs "Your Name" you@example.com yourpassword admin
+node seed-questions.mjs
 ```
 
 ### Step 4: Run the Application
@@ -205,24 +217,21 @@ Open two terminals:
 
 **Terminal 1 — Backend:**
 ```bash
-cd interviewcoach/backend
+cd interview-coach-ai-main/backend
 npm run dev
 ```
 Server starts at: http://localhost:5000
 
 **Terminal 2 — Frontend:**
 ```bash
-cd interviewcoach
+cd interview-coach-ai-main
 npm run dev
 ```
 App opens at: http://localhost:5173
 
 ### Step 5: Verify
 
-Visit http://localhost:5000/api/health — should return:
-```json
-{ "status": "online", "version": "2.0.0", "aiEngine": "Built-in Expert AI Engine" }
-```
+Visit http://localhost:5000/api/health — it should return a JSON status response confirming the server and Supabase connection are both up.
 
 ---
 
