@@ -96,8 +96,9 @@ export const interviewAPI = {
 // ── Communication ───────────────────────────────────────────────────
 export const communicationAPI = {
   // text must be the ACTUAL current transcript — not stale state
-  evaluate:   (data) => API.post('/communication/evaluate', data),
-  getHistory: ()     => API.get('/communication/history'),
+  evaluate:     (data) => API.post('/communication/evaluate', data),
+  getHistory:   ()     => API.get('/communication/history'),
+  getQuestions: ()     => API.get('/communication/questions'),
 };
 
 // ── Technical Interview ─────────────────────────────────────────────

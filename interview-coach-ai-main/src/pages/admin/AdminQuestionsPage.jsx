@@ -7,7 +7,7 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
 import { adminAPI } from '../../services/adminApi';
 
-const TYPES = ['aptitude', 'technical', 'coding', 'behavioural'];
+const TYPES = ['aptitude', 'technical', 'coding', 'behavioural', 'communication'];
 const DIFFICULTIES = ['Easy', 'Medium', 'Hard'];
 
 const TYPE_LABELS = {
@@ -15,6 +15,7 @@ const TYPE_LABELS = {
   technical: 'Technical',
   coding: 'Coding',
   behavioural: 'Behavioural',
+  communication: 'Communication',
 };
 
 function emptyForm(type = 'aptitude') {
@@ -34,7 +35,7 @@ function emptyForm(type = 'aptitude') {
     // coding
     constraints: '',
     testCases: [{ input: '', expectedOutput: '' }],
-    // behavioural
+    // behavioural / communication
     idealAnswerNotes: '',
   };
 }
@@ -45,6 +46,7 @@ function fieldLabel(type) {
     technical: 'Technology (e.g. Java, React)',
     coding: 'Category (e.g. Arrays, Strings)',
     behavioural: 'Topic (e.g. Leadership, Conflict)',
+    communication: 'Topic (e.g. Clarity, Confidence, Storytelling)',
   }[type];
 }
 
@@ -234,6 +236,22 @@ function BehaviouralFields({ form, setForm }) {
   );
 }
 
+function CommunicationFields({ form, setForm }) {
+  return (
+    <div className="space-y-3 border border-[#2a2a5a] rounded-xl p-3 bg-white/[0.02]">
+      <Field label="What a strong answer should cover (optional)">
+        <textarea
+          rows={3}
+          value={form.idealAnswerNotes}
+          onChange={(e) => setForm((p) => ({ ...p, idealAnswerNotes: e.target.value }))}
+          className={inputCls}
+          placeholder="e.g. Speaks clearly and confidently, structures the answer (situation → action → result), stays relevant to the question"
+        />
+      </Field>
+    </div>
+  );
+}
+
 /* ── modal ──────────────────────────────────────────────────────────────── */
 
 function QuestionFormModal({ initial, defaultType, onClose, onSaved }) {
@@ -256,6 +274,8 @@ function QuestionFormModal({ initial, defaultType, onClose, onSaved }) {
       } else if (form.type === 'technical') {
         payload = { technology: form.category, expectedConcepts: form.expectedConcepts.map((s) => s.trim()).filter(Boolean) };
       } else if (form.type === 'behavioural') {
+        payload = { topic: form.category, idealAnswerNotes: form.idealAnswerNotes };
+      } else if (form.type === 'communication') {
         payload = { topic: form.category, idealAnswerNotes: form.idealAnswerNotes };
       } else if (form.type === 'coding') {
         const testCases = form.testCases
@@ -352,6 +372,7 @@ function QuestionFormModal({ initial, defaultType, onClose, onSaved }) {
         {form.type === 'technical' && <TechnicalFields form={form} setForm={setForm} />}
         {form.type === 'coding' && <CodingFields form={form} setForm={setForm} />}
         {form.type === 'behavioural' && <BehaviouralFields form={form} setForm={setForm} />}
+        {form.type === 'communication' && <CommunicationFields form={form} setForm={setForm} />}
 
         <Button type="submit" loading={saving} className="w-full">{isEdit ? 'Save Changes' : 'Add Question'}</Button>
       </form>

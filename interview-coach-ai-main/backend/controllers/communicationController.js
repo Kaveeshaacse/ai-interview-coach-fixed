@@ -1,6 +1,16 @@
 import { communicationRepository } from '../repositories/communication.repository.js';
 import { analyzeCommunication     } from '../services/aiService.js';
 import { recordActivity           } from '../services/activity.service.js';
+import { getMergedCommunicationQuestions } from '../services/questionBankBridge.service.js';
+
+export const getCommunicationQuestions = async (req, res, next) => {
+  try {
+    const questions = await getMergedCommunicationQuestions();
+    res.json({ success: true, questions });
+  } catch (err) {
+    next(err);
+  }
+};
 
 export const evaluateCommunication = async (req, res, next) => {
   try {
@@ -62,4 +72,4 @@ export const getCommunicationHistory = async (req, res, next) => {
   }
 };
 
-export default { evaluateCommunication, getCommunicationHistory };
+export default { evaluateCommunication, getCommunicationHistory, getCommunicationQuestions };

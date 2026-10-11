@@ -1003,9 +1003,29 @@ export function matchResumeToJobDescription(
       matchScore: 0,
       error:
         "A readable resume and a job description of at least 30 characters are required.",
+      summary:
+        "A readable resume and a job description of at least 30 characters are required.",
     };
   }
+
   const parsed = extractJobDescriptionRequirements(jobDescText);
+
+  // Nothing concrete was extractable at all (no recognizable skills AND no
+  // responsibility lines) — every category below would otherwise default to
+  // a "vacuous" 100 (nothing to fail against = full marks). Treat this the
+  // same as a garbage job description rather than scoring it.
+  if (parsed.requirements.length === 0 && parsed.responsibilities.length === 0) {
+    return {
+      matchScore: 0,
+      confidence: 0,
+      error:
+        "This doesn't look like a real job description — it's missing recognizable skills, responsibilities, or requirements. Paste the full job posting text.",
+      errorCode: "NOT_A_JOB_DESCRIPTION",
+      summary:
+        "This doesn't look like a real job description — it's missing recognizable skills, responsibilities, or requirements. Paste the full job posting text.",
+    };
+  }
+
   const resumeText = rawResumeText.trim();
   const matchedRequirements = parsed.requirements.map((requirement) =>
     matchRequirement(requirement, resumeText),
@@ -2108,6 +2128,56 @@ export function isLikelyResume(rawText = "") {
 }
 
 /**
+ * Sanity-check a pasted "job description" before scoring a match against it.
+ * Without this, filler/gibberish text that is merely >= 30 characters (the
+ * only check that used to exist) produces an empty requirements/responsibilities
+ * list, and every category score in matchResumeToJobDescription defaults to a
+ * "vacuous" 100 (nothing to fail = full marks) — a real resume then shows as a
+ * 100% match against meaningless text. This mirrors isLikelyResume's approach:
+ * require real signal, not just length.
+ */
+export function isLikelyJobDescription(rawText = "") {
+  const text = (rawText || "").trim();
+  if (text.length < 30) {
+    return {
+      isJobDescription: false,
+      confidence: 0,
+      reason: "Job description is too short.",
+    };
+  }
+
+  const parsed = extractJobDescriptionRequirements(text);
+  const hasRequirements = parsed.requirements.length > 0;
+  const hasResponsibilities = parsed.responsibilities.length > 0;
+  const hasStructureWords =
+    /\b(responsibilit\w*|requirement\w*|qualif\w*|experience|skills?|degree|role|position|job description|we are looking|you will|must have|should have|years? of)\b/i.test(
+      text,
+    );
+
+  // Guard against low-diversity filler ("mmmmmmmmmmmmmmmmmmmmmmmmmmmmmm")
+  // that is long enough to pass the character-count check alone.
+  const words = text.toLowerCase().match(/[a-z]+/g) || [];
+  const uniqueWords = new Set(words);
+  const hasEnoughVocabulary = words.length >= 6 && uniqueWords.size >= 5;
+
+  let signals = 0;
+  if (hasRequirements) signals += 2;
+  if (hasResponsibilities) signals += 2;
+  if (hasStructureWords) signals += 1;
+  if (hasEnoughVocabulary) signals += 1;
+
+  const isJobDescription = hasEnoughVocabulary && signals >= 2;
+
+  return {
+    isJobDescription,
+    confidence: Math.min(100, signals * 20),
+    reason: isJobDescription
+      ? null
+      : "This doesn't look like a real job description — it's missing recognizable skills, responsibilities, or requirements. Paste the full job posting text.",
+  };
+}
+
+/**
  * Full resume analysis: ATS + keywords + extracted info + improvement suggestions
  */
 export function fullResumeAnalysis(
@@ -2199,4 +2269,5 @@ export default {
   ROLE_KEYWORD_CATEGORIES,
   getAtsStatusLabel,
   isLikelyResume,
+  isLikelyJobDescription,
 };

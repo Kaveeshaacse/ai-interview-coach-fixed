@@ -4,15 +4,16 @@ import { adminNotificationsRepository } from '../repositories/adminNotifications
 import { studentNotificationsRepository } from '../repositories/studentNotifications.repository.js';
 import { adminCodingNumericId } from './questionBankBridge.service.js';
 
-const VALID_TYPES = ['aptitude', 'technical', 'coding', 'behavioural'];
-const TYPE_LABELS = { aptitude: 'Aptitude', technical: 'Technical', coding: 'Coding', behavioural: 'Behavioural' };
+const VALID_TYPES = ['aptitude', 'technical', 'coding', 'behavioural', 'communication'];
+const TYPE_LABELS = { aptitude: 'Aptitude', technical: 'Technical', coding: 'Coding', behavioural: 'Behavioural', communication: 'Communication' };
 
 // Where a student should land when they click a "new question added"
 // notification. Coding problems have a stable per-row id (adminCodingNumericId)
 // the Coding Practice page can select directly via a query param; Aptitude,
-// Technical and Behavioural are test-flow pages (pick a category/role, then the
-// backend serves questions for that session) rather than browsable single
-// items, so those just open the right module instead of one exact question.
+// Technical, Behavioural and Communication are test-flow pages (pick a
+// category/role/prompt, then the backend serves questions for that session)
+// rather than browsable single items, so those just open the right module
+// instead of one exact question.
 function notificationLinkFor(created) {
   if (created.type === 'coding') {
     return `/coding?problemId=${adminCodingNumericId(created)}`;
@@ -20,6 +21,7 @@ function notificationLinkFor(created) {
   if (created.type === 'aptitude') return '/aptitude';
   if (created.type === 'technical') return '/technical';
   if (created.type === 'behavioural') return '/mock-interview';
+  if (created.type === 'communication') return '/communication';
   return null;
 }
 

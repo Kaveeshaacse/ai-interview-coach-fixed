@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { communicationAPI } from '../services/api';
 import {
   MessageSquare, Send, CheckCircle2, AlertCircle, Lightbulb,
@@ -20,9 +20,27 @@ const SAMPLE_PROMPTS = [
 
 export default function CommunicationPage() {
   const [question, setQuestion] = useState(SAMPLE_PROMPTS[0]);
+  const [prompts, setPrompts] = useState(SAMPLE_PROMPTS);
   const [text, setText]     = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+
+  // Pull in any admin-added Communication questions (admin → Question Bank)
+  // alongside the built-in prompts above. Falls back to the built-in list
+  // silently if the fetch fails — a broken fetch must never block practice.
+  useEffect(() => {
+    communicationAPI.getQuestions()
+      .then((res) => {
+        const fetched = (res.data?.questions || []).map((q) => q.question).filter(Boolean);
+        if (fetched.length) {
+          setPrompts(fetched);
+          // Only move the selected question off the default if the user
+          // hasn't already picked something else.
+          setQuestion((current) => (current === SAMPLE_PROMPTS[0] ? fetched[0] : current));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Ref to capture the ACTUAL current text at submit time (avoids stale state)
   const textRef = useRef('');
@@ -130,7 +148,7 @@ export default function CommunicationPage() {
       <Card hover={false}>
         <CardHeader><CardTitle icon={MessageSquare}>Selected Interview Question</CardTitle></CardHeader>
         <div className="flex flex-wrap gap-2">
-          {SAMPLE_PROMPTS.map((prompt) => (
+          {prompts.map((prompt) => (
             <button key={prompt} type="button" onClick={() => handleQuestionChange(prompt)} className={`text-[11px] px-3 py-1.5 rounded-lg border transition ${question === prompt ? 'bg-purple-600/20 border-purple-500 text-purple-200' : 'bg-[#1a1a3e] border-[#2a2a5a] text-slate-400 hover:border-purple-500/40'}`}>
               {prompt}
             </button>

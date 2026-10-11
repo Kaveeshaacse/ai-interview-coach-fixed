@@ -20,6 +20,7 @@ import { getQuestionsByCategory, getAllQuestions } from '../utils/aptitudeQuesti
 import { getTechnicalQuestionsByRole, getSkillsForRole } from '../utils/roleSkillsMap.js';
 import { getBehaviouralQuestions, BEHAVIOURAL_TOPICS } from '../utils/behaviouralQuestions.js';
 import { codingProblems, getProblemById } from '../utils/codingProblems.js';
+import { getCommunicationPrompts } from '../utils/communicationQuestions.js';
 
 async function safeActiveAdminQuestions(type) {
   try {
@@ -192,11 +193,30 @@ export async function getMergedCodingProblemById(id) {
   return rows.map(adaptAdminCodingRow).find((p) => p.id === numId) || null;
 }
 
+// ── Communication Evaluator ─────────────────────────────────────────────────
+// Student side just picks a prompt from a list (no category selector), so no
+// bucketing is needed — admin-added prompts are appended as-is, tagged with
+// whatever topic the admin typed (shown under the prompt, "General" if blank).
+
+export async function getMergedCommunicationQuestions() {
+  const base = getCommunicationPrompts();
+  const rows = await safeActiveAdminQuestions('communication');
+
+  const adapted = rows.map((row) => ({
+    id: `admin_${row.id}`,
+    question: row.question_text,
+    topic: row.category || 'General',
+  }));
+
+  return [...base, ...adapted];
+}
+
 export default {
   getMergedAptitudeQuestions,
   getMergedTechnicalQuestions,
   getMergedBehaviouralQuestions,
   getMergedCodingProblems,
   getMergedCodingProblemById,
+  getMergedCommunicationQuestions,
   adminCodingNumericId,
 };
